@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Progress</title>
+
+<!-- home-screen app behavior (matches the Client Hub) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Progress">
+<meta name="theme-color" content="#0f1319">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Your progress — weight, weekly consistency, and check-in history.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f1319'/%3E%3C/svg%3E">
+
+<style>
+:root{
+--bg:#0f1319; --card:#1a1f27; --card2:#20262f; --line:#2a303a;
+--ink:#ffffff; --muted:#8a93a2;
+--dd:#f0a020; --reset:#2fb26a; --travel:#ff7a2d; --blue:#3b82f6; --violet:#8b7cf6;
+--ring:#3b82f6;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+background:var(--bg); color:var(--ink); margin:0; line-height:1.5;
+padding:calc(30px + env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom));
+min-height:100%;
+-webkit-font-smoothing:antialiased;
+}
+.wrap{ max-width:560px; margin:0 auto; }
+
+.head{ text-align:center; margin-bottom:22px; }
+.logo{ width:60px; height:60px; border-radius:17px; background:var(--card);
+border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+font-size:28px; font-weight:800; margin:0 auto 12px; }
+h1{ font-size:22px; margin:0 0 4px; letter-spacing:-.01em; }
+.sub{ color:var(--muted); font-size:14px; margin:0; }
+
+/* neutral context chip for goal focus — deliberately not colored good/bad */
+.chip{ display:inline-block; margin-top:10px; font-size:11px; font-weight:800;
+text-transform:uppercase; letter-spacing:.04em; padding:4px 10px; border-radius:999px;
+border:1px solid var(--line); color:var(--muted); background:var(--card); }
+
+.section{ margin-top:22px; }
+.section > h2{ font-size:13px; text-transform:uppercase; letter-spacing:.06em;
+color:var(--muted); margin:0 0 10px 2px; font-weight:800; }
+
+.card{ background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px 16px; }
+
+/* Weight: three stat columns */
+.stats{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center; }
+.stat .k{ font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; }
+.stat .v{ font-size:24px; font-weight:800; letter-spacing:-.02em; margin-top:4px; }
+.stat .u{ font-size:12px; color:var(--muted); font-weight:600; }
+.divv{ width:1px; background:var(--line); }
+/* change value uses a neutral accent (violet), never red/green — no good/bad signal */
+.change .v{ color:var(--violet); }
+
+.spark{ margin-top:16px; }
+.spark svg{ display:block; width:100%; height:56px; overflow:visible; }
+.sparkcap{ font-size:11px; color:var(--muted); margin-top:6px; text-align:center; }
+
+/* Consistency: one row per week */
+.wk{ display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+.wk:first-child{ border-top:none; }
+.wk .date{ width:88px; flex-shrink:0; font-size:13px; color:var(--muted); font-weight:600; }
+.wk .barwrap{ flex:1; }
+.wk .bartrack{ height:10px; border-radius:6px; background:var(--card2); overflow:hidden; }
+.wk .barfill{ height:100%; border-radius:6px; background:var(--violet); width:0; }
+.wk .count{ width:52px; flex-shrink:0; text-align:right; font-size:14px; font-weight:800; }
+.wk .count small{ color:var(--muted); font-weight:600; }
+
+/* Check-in history: one block per week */
+.ci{ padding:14px 0; border-top:1px solid var(--line); }
+.ci:first-child{ border-top:none; }
+.ci .row1{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.ci .wdate{ font-size:15px; font-weight:800; letter-spacing:-.01em; }
+.ci .meta{ font-size:13px; color:var(--muted); font-weight:600; }
+.ci .row2{ margin-top:6px; display:flex; flex-wrap:wrap; gap:8px; }
+.pill{ font-size:12px; font-weight:700; padding:3px 9px; border-radius:999px;
+border:1px solid var(--line); color:var(--ink); background:var(--card2); }
+.pill.m{ color:var(--muted); background:transparent; }
+.ci .notes{ margin-top:8px; font-size:13.5px; color:var(--ink); opacity:.9;
+background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:9px 11px;
+white-space:pre-wrap; word-break:break-word; }
+
+/* Progress photos (added 9/2026) */
+.ph-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.ph-grid.one{ grid-template-columns:1fr; max-width:240px; margin:0 auto; }
+.ph{ background:var(--card2); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+.ph img{ display:block; width:100%; aspect-ratio:3/4; object-fit:cover; background:#0b0e13; }
+.ph .cap{ display:flex; justify-content:space-between; align-items:center; gap:6px; padding:8px 10px; font-size:12px; color:var(--muted); font-weight:700; }
+.ph .cap button{ background:none; border:0; color:var(--muted); font:inherit; font-weight:600; text-decoration:underline; cursor:pointer; padding:0; }
+.ph-lead{ margin:0; font-size:14.5px; }
+.ph-btn{ display:block; width:100%; margin-top:14px; padding:13px; border-radius:12px; border:1px solid var(--violet);
+background:rgba(139,124,246,.14); color:#c9c1ff; font-weight:800; font-size:15px; cursor:pointer; font-family:inherit; }
+.ph-btn:disabled{ opacity:.5; cursor:default; }
+.ph-note{ font-size:12.5px; color:var(--muted); margin-top:10px; text-align:center; }
+.ph-msg{ font-size:13px; margin-top:10px; text-align:center; color:#a7f3c4; font-weight:600; }
+.ph-msg:empty{ display:none; }
+.ph-msg.err{ color:#fca5a5; }
+.state{ text-align:center; color:var(--muted); font-size:15px; padding:34px 10px; }
+.hide{ display:none; }
+
+.foot{ text-align:center; margin-top:26px; }
+.back{ display:inline-block; color:var(--muted); font-size:13px; text-decoration:none;
+border:1px solid var(--line); border-radius:999px; padding:8px 16px; }
+.back:active{ transform:translateY(1px); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="head">
+<div class="logo" id="hubLogo"></div>
+<h1>Progress</h1>
+<p class="sub" id="sub">Loading your progress…</p>
+<span class="chip hide" id="goalchip"></span>
+</header>
+
+<main id="main">
+<!-- states injected by script -->
+<div class="state" id="loading">Loading…</div>
+<div class="state hide" id="empty"></div>
+<div id="content" class="hide"></div>
+</main>
+
+<footer class="foot">
+<a class="back" id="back" href="client-hub/">‹ Back to your hub</a>
+</footer>
+</div>
+
+<script>
+(function () {
+var API_BASE = "https://checkin-api-staging.quantumflexpt.workers.dev";
+
+var params = new URLSearchParams(location.search);
+var token = (params.get("c") || "").trim();
+var track = (params.get("track") || "").trim();
+
+var el = {
+sub: document.getElementById("sub"),
+goalchip: document.getElementById("goalchip"),
+loading: document.getElementById("loading"),
+empty: document.getElementById("empty"),
+content: document.getElementById("content"),
+back: document.getElementById("back"),
+};
+
+// FIX (9/25/2026): the back link always carries the client's code (and brand, if known),
+// so the hub knows who they are even if Progress was opened directly or from a bookmark.
+if (token) {
+el.back.href = "client-hub/?c=" + encodeURIComponent(token) + (track ? "&track=" + encodeURIComponent(track) : "");
+}
+
+if (token) { fetch(API_BASE + "/client-config?c=" + encodeURIComponent(token)).then(function (r) { return r.json(); }).then(function (d) { if (d && d.ok && d.coach) document.getElementById("hubLogo").textContent = String(d.coach.logo_text || "").slice(0, 2); }).catch(function () {}); }
+if (!token) { return showEmpty("Open the personal progress link Coach sent you."); }
+
+load();
+
+async function load() {
+try {
+var r = await fetch(API_BASE + "/progress?c=" + encodeURIComponent(token), { method: "GET" });
+var data = await r.json();
+if (!data || data.ok !== true) {
+return showEmpty("We couldn't find your progress. Double-check the link Coach sent you.");
+}
+render(data);
+} catch (err) {
+showEmpty("Couldn't load your progress just now. Check your connection and try again.");
+}
+}
+
+// ---------- helpers ----------
+function num(n) {
+if (n === null || n === undefined || isNaN(n)) return null;
+n = Number(n);
+return Number.isInteger(n) ? String(n) : (Math.round(n * 10) / 10).toFixed(1);
+}
+function fmtDate(ymd) {
+if (!ymd) return "";
+var d = new Date(String(ymd).slice(0, 10) + "T00:00:00Z");
+if (isNaN(d)) return String(ymd).slice(0, 10);
+return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+var GOAL_LABEL = { fat_loss: "Focus: fat loss", muscle_gain: "Focus: muscle gain", maintenance: "Focus: maintenance" };
+function esc(s) {
+return String(s).replace(/[&<>"']/g, function (c) {
+return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+});
+}
+
+function showEmpty(msg) {
+el.loading.classList.add("hide");
+el.content.classList.add("hide");
+el.empty.textContent = msg;
+el.empty.classList.remove("hide");
+el.sub.textContent = "Your progress";
+}
+
+function render(d) {
+el.loading.classList.add("hide");
+el.empty.classList.add("hide");
+
+el.sub.textContent = d.name ? (d.name + "’s progress") : "Your progress";
+if (d.goal_type && GOAL_LABEL[d.goal_type]) {
+el.goalchip.textContent = GOAL_LABEL[d.goal_type];
+el.goalchip.classList.remove("hide");
+}
+
+var history = Array.isArray(d.history) ? d.history : [];
+var html = "";
+
+// weeks that recorded a weight, oldest first (used for start fallback + sparkline)
+var pts = history.filter(function (h) { return h.weight != null && !isNaN(h.weight); });
+
+// ---------- WEIGHT ----------
+// FIX (9/25/2026): start weight isn't set when a client is added, so fall back to
+// their FIRST weigh-in. A stored start_weight still wins when one exists.
+var startRaw = (d.start_weight != null && !isNaN(d.start_weight)) ? Number(d.start_weight)
+: (pts.length ? Number(pts[0].weight) : null);
+var curRaw = (d.current_weight != null && !isNaN(d.current_weight)) ? Number(d.current_weight) : null;
+var start = num(startRaw);
+var cur = num(curRaw);
+var change = null;
+// only show a change once there are two different weigh-ins to compare
+if (startRaw !== null && curRaw !== null && (d.start_weight != null || pts.length >= 2)) {
+var diff = curRaw - startRaw;
+var rounded = Math.round(diff * 10) / 10;
+var sign = rounded > 0 ? "+" : (rounded < 0 ? "\u2212" : "");
+change = sign + num(Math.abs(rounded));
+}
+
+html += '<section class="section"><h2>Weight</h2><div class="card">';
+html += '<div class="stats">';
+html += statCol("Start", start, "lb");
+html += '<div class="divv"></div>';
+html += statCol("Current", cur, "lb");
+html += '<div class="divv"></div>';
+html += '<div class="stat change"><div class="k">Change</div><div class="v">' +
+(change !== null ? change : "—") + '</div><div class="u">' +
+(change !== null ? "lb since start" : "—") + '</div></div>';
+html += '</div>'; // .stats
+
+// trend sparkline from weeks that recorded a weight (objective line, neutral color)
+if (pts.length >= 2) {
+html += '<div class="spark">' + sparkline(pts) +
+'<div class="sparkcap">Weigh-ins over time</div></div>';
+}
+html += '</div></section>'; // card + section
+
+// ---------- PROGRESS PHOTOS (filled in by loadPhotos) ----------
+html += '<section class="section" id="photosec"><h2>Progress photos</h2><div class="card"><div class="ph-note" style="margin:0">Loading photos…</div></div></section>';
+
+// ---------- CONSISTENCY ----------
+var target = (d.workouts_per_week != null && !isNaN(d.workouts_per_week)) ? Number(d.workouts_per_week) : null;
+if (history.length) {
+html += '<section class="section"><h2>Workout consistency</h2><div class="card">';
+// newest first
+var wk = history.slice().reverse();
+for (var i = 0; i < wk.length; i++) {
+var done = (wk[i].workouts_done != null && !isNaN(wk[i].workouts_done)) ? Number(wk[i].workouts_done) : 0;
+var pct = target && target > 0 ? Math.min(100, Math.round((done / target) * 100)) : (done > 0 ? 100 : 0);
+html += '<div class="wk">' +
+'<div class="date">' + esc(fmtDate(wk[i].week_start)) + '</div>' +
+'<div class="barwrap"><div class="bartrack"><div class="barfill" style="width:' + pct + '%"></div></div></div>' +
+'<div class="count">' + done + '<small>/' + (target != null ? target : "—") + '</small></div>' +
+'</div>';
+}
+html += '</div></section>';
+}
+
+// ---------- CHECK-IN HISTORY ----------
+if (history.length) {
+html += '<section class="section"><h2>Check-in history</h2><div class="card">';
+var hist = history.slice().reverse(); // newest first
+for (var j = 0; j < hist.length; j++) {
+var h = hist[j];
+var w = num(h.weight);
+var e = (h.energy != null && !isNaN(h.energy)) ? Number(h.energy) : null;
+html += '<div class="ci">';
+html += '<div class="row1"><span class="wdate">' + esc(fmtDate(h.week_start)) + '</span>' +
+'<span class="meta">' + (w !== null ? (w + " lb") : "no weigh-in") + '</span></div>';
+html += '<div class="row2">';
+html += '<span class="pill">' + ((h.workouts_done != null && !isNaN(h.workouts_done)) ? Number(h.workouts_done) : 0) +
+(target != null ? (" / " + target) : "") + ' workouts</span>';
+html += (e !== null) ? '<span class="pill m">Energy ' + e + '/5</span>' : '';
+html += '</div>';
+if (h.notes && String(h.notes).trim()) {
+html += '<div class="notes">' + esc(String(h.notes).trim()) + '</div>';
+}
+html += '</div>';
+}
+html += '</div></section>';
+} else {
+html += '<section class="section"><div class="state" style="padding:24px 10px">' +
+'No check-ins yet — your first weekly check-in will show up here.</div></section>';
+}
+
+el.content.innerHTML = html;
+el.content.classList.remove("hide");
+loadPhotos();
+}
+
+// ================= PROGRESS PHOTOS (added 9/2026) =================
+// Photos are private: the API only returns them for this client's own code (?c=).
+var PHOTO_EVERY_DAYS = 28;
+var photos = [];
+var PHOTO_ERRORS = {
+not_an_image: "That file isn't a photo. Try again with a picture.",
+photo_too_large: "That photo is too large. Try a different one.",
+photo_limit_reached: "You've reached the photo limit. Ask Coach to clear out older ones.",
+unknown_client: "This link isn't working. Open the link Coach sent you.",
+photos_not_configured: "Photos aren't available right now. Let Coach know."
+};
+function photoUrl(id) {
+return API_BASE + "/photos/view?c=" + encodeURIComponent(token) + "&id=" + encodeURIComponent(id);
+}
+function tsDate(ts) { return new Date(String(ts).replace(" ", "T") + "Z"); }
+function daysSince(ts) { var d = tsDate(ts); return isNaN(d) ? 0 : (Date.now() - d.getTime()) / 86400000; }
+function photoTile(p, label) {
+var u = photoUrl(p.id);
+return '<div class="ph"><a href="' + u + '" target="_blank" rel="noopener noreferrer">' +
+'<img src="' + u + '" alt="' + label + ' photo" loading="lazy" referrerpolicy="no-referrer"></a>' +
+'<div class="cap"><span>' + label + ' · ' + esc(fmtDate(String(p.taken_at).slice(0, 10))) + '</span>' +
+'<button type="button" data-del="' + esc(p.id) + '">Remove</button></div></div>';
+}
+async function loadPhotos() {
+var sec = document.getElementById("photosec");
+if (!sec) return;
+try {
+var r = await fetch(API_BASE + "/photos?c=" + encodeURIComponent(token));
+var d = await r.json();
+if (!d || d.ok !== true) { sec.classList.add("hide"); return; }
+photos = Array.isArray(d.photos) ? d.photos : [];
+renderPhotos();
+} catch (err) {
+sec.innerHTML = '<h2>Progress photos</h2><div class="card"><div class="ph-msg err">Couldn\'t load your photos just now.</div></div>';
+}
+}
+function renderPhotos(msg, isErr) {
+var sec = document.getElementById("photosec");
+if (!sec) return;
+var h = '<h2>Progress photos</h2><div class="card">';
+if (!photos.length) {
+h += '<p class="ph-lead">Snap a starting photo now. In 4 weeks you\'ll be glad you did. ' +
+'Same spot, same lighting, same pose every time.</p>' +
+'<button type="button" class="ph-btn" data-add>Add your starting photo</button>';
+} else {
+var first = photos[0], last = photos[photos.length - 1];
+h += '<div class="ph-grid' + (photos.length === 1 ? ' one' : '') + '">' +
+photoTile(first, "Start") + (photos.length > 1 ? photoTile(last, "Latest") : '') + '</div>';
+var days = daysSince(last.taken_at);
+if (days >= PHOTO_EVERY_DAYS) {
+h += '<button type="button" class="ph-btn" data-add>Time for your 4-week photo</button>';
+} else {
+var left = Math.max(1, Math.ceil(PHOTO_EVERY_DAYS - days));
+h += '<div class="ph-note" style="margin-top:14px">Next progress photo in ' + left + ' day' + (left === 1 ? '' : 's') + '.</div>';
+}
+if (photos.length > 2) h += '<div class="ph-note">' + photos.length + ' photos saved</div>';
+}
+h += '<div class="ph-msg' + (isErr ? ' err' : '') + '" id="phmsg">' + (msg ? esc(msg) : '') + '</div>';
+h += '<div class="ph-note">\uD83D\uDD12 Only you and Coach can see these.</div></div>';
+h += '<input type="file" id="phfile" accept="image/*" hidden>';
+sec.innerHTML = h;
+
+var fileEl = document.getElementById("phfile");
+var addBtn = sec.querySelector("[data-add]");
+if (addBtn) addBtn.addEventListener("click", function () { fileEl.click(); });
+fileEl.addEventListener("change", function () { if (fileEl.files && fileEl.files[0]) uploadPhoto(fileEl.files[0]); });
+Array.prototype.forEach.call(sec.querySelectorAll("[data-del]"), function (b) {
+b.addEventListener("click", function () { removePhoto(b.getAttribute("data-del")); });
+});
+}
+function setPhotoBusy(text) {
+var m = document.getElementById("phmsg");
+if (m) { m.className = "ph-msg"; m.style.color = "var(--muted)"; m.textContent = text; }
+var sec = document.getElementById("photosec");
+if (sec) Array.prototype.forEach.call(sec.querySelectorAll("button"), function (b) { b.disabled = true; });
+}
+// Shrink on the phone before upload: max 1600px, JPEG ~0.82 quality (~200-400 KB).
+function shrinkPhoto(file) {
+return new Promise(function (resolve, reject) {
+var url = URL.createObjectURL(file);
+var img = new Image();
+img.onload = function () {
+var max = 1600, w = img.naturalWidth, hh = img.naturalHeight;
+var s = Math.min(1, max / Math.max(w, hh));
+var c = document.createElement("canvas");
+c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(hh * s));
+c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+URL.revokeObjectURL(url);
+c.toBlob(function (b) { b ? resolve(b) : reject(new Error("encode")); }, "image/jpeg", 0.82);
+};
+img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("decode")); };
+img.src = url;
+});
+}
+async function uploadPhoto(file) {
+setPhotoBusy("Preparing your photo…");
+var blob;
+try { blob = await shrinkPhoto(file); }
+catch (e) { return renderPhotos("That photo couldn't be opened. Try a different one.", true); }
+setPhotoBusy("Uploading…");
+try {
+var r = await fetch(API_BASE + "/photos/upload?c=" + encodeURIComponent(token), {
+method: "POST", headers: { "content-type": "image/jpeg" }, body: blob
+});
+var d = await r.json().catch(function () { return {}; });
+if (!r.ok || !d.ok || !d.photo) throw new Error(PHOTO_ERRORS[d.error] || "Upload didn't go through. Try again in a minute.");
+photos.push(d.photo);
+renderPhotos("Saved. Nice work.");
+} catch (e) {
+renderPhotos(e.message || "Upload didn't go through. Try again in a minute.", true);
+}
+}
+async function removePhoto(id) {
+if (!confirm("Remove this photo? This can't be undone.")) return;
+setPhotoBusy("Removing…");
+try {
+var r = await fetch(API_BASE + "/photos/delete?c=" + encodeURIComponent(token), {
+method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: id })
+});
+var d = await r.json().catch(function () { return {}; });
+if (!r.ok || !d.ok) throw new Error("Couldn't remove that photo. Try again.");
+photos = photos.filter(function (p) { return p.id !== id; });
+renderPhotos("Photo removed.");
+} catch (e) {
+renderPhotos(e.message, true);
+}
+}
+// ================= end PROGRESS PHOTOS =================
+
+function statCol(k, v, u) {
+return '<div class="stat"><div class="k">' + k + '</div><div class="v">' +
+(v !== null ? v : "—") + '</div><div class="u">' + (v !== null ? u : "—") + '</div></div>';
+}
+
+// Minimal, dependency-free sparkline. Objective line only — no thresholds, no color coding.
+function sparkline(pts) {
+var W = 320, H = 56, pad = 6;
+var ys = pts.map(function (p) { return Number(p.weight); });
+var min = Math.min.apply(null, ys), max = Math.max.apply(null, ys);
+var span = (max - min) || 1;
+var n = pts.length;
+var coords = pts.map(function (p, i) {
+var x = pad + (i * (W - 2 * pad)) / (n - 1);
+var y = pad + (H - 2 * pad) * (1 - (Number(p.weight) - min) / span);
+return [x, y];
+});
+var line = coords.map(function (c, i) { return (i ? "L" : "M") + c[0].toFixed(1) + " " + c[1].toFixed(1); }).join(" ");
+var dots = coords.map(function (c) {
+return '<circle cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="2.6" fill="var(--violet)"/>';
+}).join("");
+return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="Weight over time">' +
+'<path d="' + line + '" fill="none" stroke="var(--violet)" stroke-width="2.5" ' +
+'stroke-linejoin="round" stroke-linecap="round"/>' + dots +
+'</svg>';
+}
+})();
+</script>
+</body>
+</html>
+

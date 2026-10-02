@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly Check-in</title>
+<style>
+:root { --ink:#e8edf2; --muted:#94a3b8; --line:#2a333f; --card:#141b24; --brand:#37c46b; --brand2:#37c46b; --on-brand:#04140a; --bg:#0a1712; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+background:var(--bg); color:var(--ink); line-height:1.5; }
+.wrap { max-width:520px; margin:0 auto; padding:24px 18px 64px; }
+h1 { font-size:1.5rem; margin:.2em 0 .1em; }
+.sub { color:var(--muted); margin:0 0 20px; }
+label { display:block; font-weight:600; margin:18px 0 6px; }
+.hint { font-weight:400; color:var(--muted); font-size:.85rem; }
+input, textarea, select { width:100%; padding:13px 14px; font-size:1rem; border:1px solid var(--line);
+border-radius:12px; background:var(--card); color:var(--ink); -webkit-appearance:none; }
+input::placeholder, textarea::placeholder { color:#5b6675; }
+input:focus, textarea:focus, select:focus { outline:2px solid var(--brand2); border-color:var(--brand); }
+textarea { min-height:90px; resize:vertical; }
+.energy { display:flex; gap:8px; }
+.energy button { flex:1; padding:13px 0; font-size:1rem; border:1px solid var(--line); border-radius:12px;
+background:var(--card); color:var(--ink); cursor:pointer; }
+.energy button[aria-pressed="true"] { background:var(--brand); border-color:var(--brand); color:var(--on-brand); font-weight:700; }
+.submit { margin-top:26px; width:100%; padding:15px; font-size:1.05rem; font-weight:700; color:var(--on-brand);
+background:var(--brand); border:0; border-radius:14px; cursor:pointer; }
+.submit:disabled { opacity:.55; cursor:default; }
+.msg { margin-top:18px; padding:14px 16px; border-radius:12px; font-weight:600; display:none; }
+.msg.ok { display:block; background:rgba(55,196,107,.14); color:#7ee2a4; }
+.msg.err { display:block; background:rgba(239,68,68,.14); color:#fca5a5; }
+.done { text-align:center; padding:40px 0; }
+.done h2 { font-size:1.6rem; margin:.2em 0; }
+/* brand bar — colored per client brand (dd amber / reset green / travel orange) */
+.brandbar { background:var(--brand); color:var(--on-brand); }
+.brandbar span { display:block; max-width:520px; margin:0 auto; padding:14px 18px; font-weight:800; letter-spacing:-.01em; }
+</style>
+</head>
+<body>
+<div class="brandbar"><span id="brandname"></span></div>
+<div class="wrap">
+<div id="form-view">
+<h1>Weekly check-in</h1>
+<p class="sub">Takes about 30 seconds. Be honest — that's the whole point.</p>
+
+<!-- Token comes from the personal link (?c=<token>) and is submitted silently.
+Hidden so the client never sees a cryptic code. -->
+<input id="client_id" type="hidden" autocomplete="off">
+
+<label for="workouts">Workouts completed this week</label>
+<input id="workouts" type="number" inputmode="numeric" min="0" max="14" step="1" placeholder="0">
+
+<label for="weight">Body weight <span class="hint">(optional — lb)</span></label>
+<input id="weight" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Leave blank if you didn't weigh in">
+
+<label>Energy this week</label>
+<div class="energy" id="energy" role="group" aria-label="Energy 1 to 5">
+<button type="button" data-v="1">1</button>
+<button type="button" data-v="2">2</button>
+<button type="button" data-v="3">3</button>
+<button type="button" data-v="4">4</button>
+<button type="button" data-v="5">5</button>
+</div>
+
+<label for="notes">Anything I should know? <span class="hint">(optional)</span></label>
+<textarea id="notes" placeholder="Travel, soreness, wins, struggles…"></textarea>
+
+<button class="submit" id="submit">Submit check-in</button>
+<div class="msg" id="msg"></div>
+</div>
+
+<div id="done-view" class="done" style="display:none">
+<h2>Got it 💪</h2>
+<p class="sub">Your check-in is in. I'll be in touch if anything needs adjusting.</p>
+</div>
+</div>
+
+<script>
+const API_BASE = "https://checkin-api-staging.quantumflexpt.workers.dev";
+
+// Client identity = an opaque per-client token carried in the personal link (?c=<token>).
+const params = new URLSearchParams(location.search);
+const cid = params.get("c");
+const clientInput = document.getElementById("client_id");
+if (cid) clientInput.value = cid;
+
+// Brand skin (?b=dd|reset|travel) — matches the program page the client came from.
+// Each brand also carries its own dark background tint so the page matches the program pages.
+const BRANDS = {
+reset: { name:"The Reset", brand:"#37c46b", on:"#04140a", bg:"#0a1712" },
+dd: { name:"Diesel & Discipline", brand:"#FFB020", on:"#1a1200", bg:"#17130a" },
+travel: { name:"Travel Plan", brand:"#ff7a2d", on:"#1a0d02", bg:"#17110a" },
+};
+// Multi-coach: with a token and no brand in the link, start neutral (no TreMayne branding) until the coach's config loads.
+const NEUTRAL_SKIN = { name:"", brand:"#3b82f6", on:"#ffffff", bg:"#0f1319" };
+const b = params.get("b") ? (BRANDS[params.get("b").toLowerCase()] || BRANDS.reset) : (cid ? NEUTRAL_SKIN : BRANDS.reset);
+const rootStyle = document.documentElement.style;
+rootStyle.setProperty("--brand", b.brand);
+rootStyle.setProperty("--brand2", b.brand);
+rootStyle.setProperty("--on-brand", b.on);
+rootStyle.setProperty("--bg", b.bg);
+document.getElementById("brandname").textContent = b.name;
+document.title = b.name ? "Weekly Check-in — " + b.name : "Weekly Check-in";
+if (cid) fetch(API_BASE + "/client-config?c=" + encodeURIComponent(cid)).then(r => r.json()).then(d => {
+  if (!d || !d.ok || !d.coach) return;
+  if (d.coach.skin !== "neutral") { if (!params.get("b")) { const t = BRANDS.reset; rootStyle.setProperty("--brand", t.brand); rootStyle.setProperty("--brand2", t.brand); rootStyle.setProperty("--on-brand", t.on); rootStyle.setProperty("--bg", t.bg); document.getElementById("brandname").textContent = t.name; } return; }
+  const acc = /^#[0-9a-fA-F]{6}$/.test(d.coach.accent_color || "") ? d.coach.accent_color : "#3b82f6";
+  rootStyle.setProperty("--brand", acc); rootStyle.setProperty("--brand2", acc); rootStyle.setProperty("--on-brand", "#ffffff"); rootStyle.setProperty("--bg", "#0f1319");
+  document.getElementById("brandname").textContent = d.coach.display_name || "Your coach";
+  document.title = "Weekly Check-in — " + (d.coach.display_name || "Your coach");
+}).catch(() => {});
+
+let energy = null;
+const energyWrap = document.getElementById("energy");
+energyWrap.addEventListener("click", (e) => {
+const bx = e.target.closest("button"); if (!bx) return;
+energy = Number(bx.dataset.v);
+[...energyWrap.children].forEach(x => x.setAttribute("aria-pressed", x === bx));
+});
+
+const msg = document.getElementById("msg");
+const btn = document.getElementById("submit");
+const show = (t, cls) => { msg.textContent = t; msg.className = "msg " + cls; };
+
+btn.addEventListener("click", async () => {
+const token = clientInput.value.trim();
+const workouts_done = parseInt(document.getElementById("workouts").value, 10);
+const weightRaw = document.getElementById("weight").value.trim();
+const notes = document.getElementById("notes").value.trim();
+
+if (!token) return show("Open the personal link I sent you — this page needs your code.", "err");
+if (!Number.isInteger(workouts_done) || workouts_done < 0)
+return show("Enter how many workouts you completed (0 or more).", "err");
+
+let weight = null;
+if (weightRaw !== "") {
+weight = parseFloat(weightRaw);
+if (!Number.isFinite(weight) || weight <= 0) return show("Weight must be a number above 0, or left blank.", "err");
+}
+
+const body = { token, workouts_done, notes };
+if (weight !== null) body.weight = weight;
+if (energy !== null) body.energy = energy;
+
+btn.disabled = true; show("Sending…", "ok");
+try {
+const r = await fetch(`${API_BASE}/checkin`, {
+method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+});
+if (!r.ok) {
+const d = await r.json().catch(() => ({}));
+const map = {
+invalid_weight: "That weight doesn't look right — enter a number above 0, or leave it blank.",
+unauthorized: "This link isn't working — open the personal link I sent you and submit from there.",
+unknown_client: "This link isn't working — open the personal link I sent you and submit from there.",
+missing_client_id: "This link is missing your code — open the personal link I sent you and submit from there.",
+already_submitted: "You've already checked in this week — I've got it. 💪",
+rate_limited: "Too many tries in a row — give it a minute, then hit submit again.",
+};
+throw new Error(map[d.error] || "That didn't go through — give it a minute and hit submit again.");
+}
+document.getElementById("form-view").style.display = "none";
+document.getElementById("done-view").style.display = "block";
+} catch (e) {
+show(e.message || "Couldn't reach me just now — check your connection and try again in a minute.", "err");
+btn.disabled = false;
+}
+});
+</script>
+</body>
+</html>
+

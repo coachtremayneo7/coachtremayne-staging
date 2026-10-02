@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Client Hub</title>
+
+<!-- home-screen app behavior -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Client Hub">
+<meta name="theme-color" content="#0f1319">
+<meta name="description" content="Your coaching tools — training, check-ins, tracking, and more, all in one place.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f1319'/%3E%3C/svg%3E">
+
+<style>
+:root{
+--bg:#0f1319; --card:#1a1f27; --card2:#20262f; --line:#2a303a;
+--ink:#ffffff; --muted:#8a93a2;
+--dd:#f0a020; --reset:#2fb26a; --travel:#ff7a2d; --blue:#3b82f6; --violet:#8b7cf6;
+--ring:#3b82f6;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+background:var(--bg); color:var(--ink); margin:0; line-height:1.5;
+padding:calc(30px + env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom));
+min-height:100%;
+-webkit-font-smoothing:antialiased;
+}
+.wrap{ max-width:560px; margin:0 auto; }
+
+.head{ text-align:center; margin-bottom:26px; }
+.logo{ width:64px; height:64px; border-radius:18px; background:var(--card);
+border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+font-size:30px; font-weight:800; margin:0 auto 14px; }
+h1{ font-size:23px; margin:0 0 4px; letter-spacing:-.01em; }
+.sub{ color:var(--muted); font-size:14px; margin:0; }
+
+.grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* Active cards are <a>; inactive V1 cards are <div class="card inactive"> */
+.card{
+display:flex; flex-direction:column; justify-content:flex-start; gap:10px;
+background:var(--card); border:1px solid var(--line); border-radius:18px;
+padding:18px 16px; text-decoration:none; color:var(--ink);
+min-height:118px; transition:background .12s ease, transform .05s ease;
+position:relative;
+}
+a.card:hover{ background:var(--card2); }
+a.card:active{ transform:translateY(1px); }
+a.card:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+
+/* inactive placeholder cards: dashed border + dimmer fill so they clearly read as
+"not a button" while staying visually part of the set */
+.card.inactive{ opacity:.72; cursor:default; background:transparent;
+border-style:dashed; border-color:var(--line); }
+
+.card.wide{ grid-column:1 / -1; flex-direction:row; align-items:center; min-height:auto; }
+.card.wide .txt{ flex:1; }
+
+.ic{ width:44px; height:44px; border-radius:12px; display:flex; align-items:center;
+justify-content:center; font-size:22px; flex-shrink:0; }
+.ic.training{ background:rgba(240,160,32,.16); }
+.ic.food{ background:rgba(47,178,106,.16); }
+.ic.checkin{ background:rgba(59,130,246,.16); }
+.ic.progress{ background:rgba(139,124,246,.16); }
+.ic.calc{ background:rgba(47,178,106,.16); }
+.ic.grace{ background:rgba(255,122,45,.16); }
+.ic.contact{ background:rgba(59,130,246,.16); }
+.ic.book{ background:rgba(240,160,32,.16); }
+.ic.meal{ background:rgba(47,178,106,.16); }
+.ic.grocery{ background:rgba(240,160,32,.16); }
+
+.t{ font-size:16px; font-weight:700; letter-spacing:-.01em; }
+.d{ font-size:12.5px; color:var(--muted); }
+
+/* small status badge for inactive cards */
+.tag{ display:inline-block; font-size:10px; font-weight:800; text-transform:uppercase;
+letter-spacing:.04em; padding:2px 8px; border-radius:999px; margin-top:2px;
+border:1px solid var(--line); color:var(--muted); }
+.tag.personal{ color:var(--dd); border-color:rgba(240,160,32,.5); background:rgba(240,160,32,.10); }
+.tag.soon{ color:var(--muted); }
+
+.foot{ text-align:center; color:var(--muted); font-size:12px; margin-top:30px; line-height:1.7; }
+.foot a{ color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="head">
+<div class="logo" id="hubLogo"></div>
+<h1 id="hubName">Client Hub</h1>
+<p class="sub">Your coaching tools, all in one place</p>
+</header>
+
+<main>
+<div class="grid">
+
+<!-- My Training (placeholder by default; upgraded to a real link when ?c= + ?track= are present) -->
+<div class="card inactive" id="card-training" aria-disabled="true">
+<div class="ic training">&#127947;</div>
+<div class="txt">
+<div class="t">My Training</div>
+<div class="d" id="d-training">Open the personal link Coach sent you</div>
+<span class="tag personal" id="tag-training">Personal link</span>
+</div>
+</div>
+
+<!-- Calorie Calculator (real link) -->
+<a class="card" id="card-calc" href="#" hidden aria-label="Calorie Calculator">
+<div class="ic calc">&#129518;</div>
+<div class="txt">
+<div class="t">Calorie Calculator</div>
+<div class="d">Dial in your numbers</div>
+</div>
+</a>
+
+<!-- Food Tracker (real link) -->
+<a class="card" href="../food-tracker.html" aria-label="Food Tracker">
+<div class="ic food">&#127869;</div>
+<div class="txt">
+<div class="t">Food Tracker</div>
+<div class="d">Log &amp; review your nutrition</div>
+</div>
+</a>
+
+<!-- Meal Plan (placeholder by default; upgraded to a real link when ?c= is present) -->
+<div class="card inactive" id="card-meal" aria-disabled="true">
+<div class="ic meal">&#129367;</div>
+<div class="txt">
+<div class="t">Meal Plan</div>
+<div class="d" id="d-meal">Open the personal link Coach sent you</div>
+<span class="tag personal" id="tag-meal">Personal link</span>
+</div>
+</div>
+
+<!-- Grocery List (placeholder by default; upgraded to a real link when ?c= is present) -->
+<div class="card inactive" id="card-grocery" aria-disabled="true">
+<div class="ic grocery">&#128722;</div>
+<div class="txt">
+<div class="t">Grocery List</div>
+<div class="d" id="d-grocery">Open the personal link Coach sent you</div>
+<span class="tag personal" id="tag-grocery">Personal link</span>
+</div>
+</div>
+
+<!-- Progress (placeholder by default; upgraded to a real link when ?c= is present) -->
+<div class="card inactive" id="card-progress" aria-disabled="true">
+<div class="ic progress">&#128200;</div>
+<div class="txt">
+<div class="t">Progress</div>
+<div class="d" id="d-progress">Open the personal link Coach sent you</div>
+<span class="tag personal" id="tag-progress">Personal link</span>
+</div>
+</div>
+
+<!-- Weekly Check-in (placeholder by default; upgraded to a real link when ?c= + ?track= are present) -->
+<div class="card inactive" id="card-checkin" aria-disabled="true">
+<div class="ic checkin">&#128203;</div>
+<div class="txt">
+<div class="t">Weekly Check-in</div>
+<div class="d" id="d-checkin">Open the personal link Coach sent you</div>
+<span class="tag personal" id="tag-checkin">Personal link</span>
+</div>
+</div>
+
+<!-- Ask Grace (external) -->
+<a class="card" id="card-lead" href="#" hidden target="_blank" rel="noopener noreferrer" aria-label="Ask a question">
+<div class="ic grace">&#128172;</div>
+<div class="txt">
+<div class="t">Ask a question</div>
+<div class="d">Quick questions, answered</div>
+</div>
+</a>
+
+<!-- Schedule a Call (tel -> Retell AI books a slot; coach calls back).
+Public default. Swapped to "Text Coach" ONLY for a verified client (see script below). -->
+<a class="card wide" id="card-contact" href="tel:+12709433164" aria-label="Schedule a call">
+<div class="ic contact" id="ic-contact">&#128197;</div>
+<div class="txt">
+<div class="t" id="t-contact">Schedule a Call</div>
+<div class="d" id="d-contact">Call to book your session — 270-943-3164</div>
+</div>
+</a>
+
+</div>
+</main>
+
+<footer class="foot">
+<span id="hubTag">Client Hub</span><br>
+Add to your Home Screen to use like an app
+</footer>
+</div>
+
+<script>
+/* Client Hub (multi-coach, Spec v3 §10). No token → generic public page; nothing coach-specific is requested.
+   Valid token → /client-config returns ONLY that client's coach's public fields. */
+(function () {
+  var API = "https://checkin-api-staging.quantumflexpt.workers.dev";
+  var params = new URLSearchParams(location.search);
+  var c = (params.get("c") || "").trim();
+  var track = (params.get("track") || "").trim().toLowerCase();
+  var VALID = { dd:1, reset:1, travel:1, fatloss:1, muscle:1 };
+  if (!c) return;
+  function safeUrl(u) { return typeof u === "string" && /^(https:\/\/|\/)/.test(u) ? u : null; }
+  function setText(id, t) { var el = document.getElementById(id); if (el) el.textContent = t; }
+  fetch(API + "/client-config?c=" + encodeURIComponent(c))
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.ok || !d.coach) return; // not a verified client → stays generic
+      var co = d.coach;
+      setText("hubName", co.display_name || "Client Hub");
+      setText("hubLogo", String(co.logo_text || "").slice(0, 2));
+      setText("hubTag", co.tagline || co.display_name || "");
+      document.title = (co.display_name || "Client") + " — Client Hub";
+      var qs = "?c=" + encodeURIComponent(c) + (track ? "&track=" + encodeURIComponent(track) : "");
+      upgrade("progress", "../progress.html" + qs, "See your weight, consistency & check-ins");
+      upgrade("meal", "../meal-plan.html" + qs, "See your meal plan");
+      upgrade("grocery", "../grocery.html" + qs, "Your shopping list");
+      var link = null;
+      if (co.skin === "neutral") link = "../program.html?c=" + encodeURIComponent(c);
+      else if (VALID[track]) link = "../program.html?track=" + encodeURIComponent(track) + "&c=" + encodeURIComponent(c);
+      if (link) { upgrade("training", link, "Open your training"); upgrade("checkin", link, "Open your weekly check-in"); }
+      var calc = safeUrl(co.calculator_url), lead = safeUrl(co.lead_url), book = safeUrl(co.booking_url);
+      if (calc) { var ce = document.getElementById("card-calc"); ce.href = calc; ce.hidden = false; }
+      if (lead) { var le = document.getElementById("card-lead"); le.href = lead; le.hidden = false; }
+      if (book) addBookingCard(book);
+      var digits = String(co.text_number || "").replace(/\D/g, "");
+      if (digits.length === 10) digits = "1" + digits;
+      var card = document.getElementById("card-contact");
+      if (digits.length === 11) {
+        card.setAttribute("href", "sms:+" + digits);
+        card.setAttribute("aria-label", "Text your coach");
+        document.getElementById("ic-contact").innerHTML = "&#128241;";
+        setText("t-contact", "Text Coach");
+        setText("d-contact", "Message me directly — " + digits.slice(1, 4) + "-" + digits.slice(4, 7) + "-" + digits.slice(7));
+      } else {
+        var p = String(co.contact_phone || "").replace(/[^0-9+]/g, "");
+        if (p.length >= 10) { card.setAttribute("href", "tel:" + p); setText("d-contact", "Call to book your session"); }
+      }
+    })
+    .catch(function () {});
+  function upgrade(which, href, desc) {
+    var card = document.getElementById("card-" + which);
+    if (!card) return;
+    var a = document.createElement("a");
+    a.className = "card";
+    a.setAttribute("href", href);
+    var LABELS = { training:"My Training", checkin:"Weekly Check-in", progress:"Progress", meal:"Meal Plan", grocery:"Grocery List" };
+    a.setAttribute("aria-label", LABELS[which] || "");
+    a.innerHTML = card.innerHTML;
+    card.parentNode.replaceChild(a, card);
+    var d = document.getElementById("d-" + which); if (d) d.textContent = desc;
+    var tag = document.getElementById("tag-" + which); if (tag) tag.parentNode.removeChild(tag);
+  }
+  function addBookingCard(url) {
+    if (document.getElementById("card-book")) return;
+    var contact = document.getElementById("card-contact");
+    if (!contact) return;
+    var a = document.createElement("a");
+    a.className = "card wide"; a.id = "card-book";
+    a.setAttribute("href", url); a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener noreferrer");
+    a.setAttribute("aria-label", "Book or reschedule training");
+    a.innerHTML = '<div class="ic book">&#128467;</div><div class="txt"><div class="t">Book / Reschedule Training</div><div class="d">Choose your next training session.</div></div>';
+    contact.parentNode.insertBefore(a, contact);
+  }
+})();
+</script>
+</body>
+</html>
