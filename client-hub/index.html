@@ -110,7 +110,7 @@ border:1px solid var(--line); color:var(--muted); }
 </div>
 
 <!-- Calorie Calculator (real link) -->
-<a class="card" id="card-calc" href="#" hidden aria-label="Calorie Calculator">
+<a class="card" id="card-calc" href="#" style="display:none" aria-label="Calorie Calculator">
 <div class="ic calc">&#129518;</div>
 <div class="txt">
 <div class="t">Calorie Calculator</div>
@@ -168,7 +168,7 @@ border:1px solid var(--line); color:var(--muted); }
 </div>
 
 <!-- Ask Grace (external) -->
-<a class="card" id="card-lead" href="#" hidden target="_blank" rel="noopener noreferrer" aria-label="Ask a question">
+<a class="card" id="card-lead" href="#" style="display:none" target="_blank" rel="noopener noreferrer" aria-label="Ask a question">
 <div class="ic grace">&#128172;</div>
 <div class="txt">
 <div class="t">Ask a question</div>
@@ -204,6 +204,8 @@ Add to your Home Screen to use like an app
   var c = (params.get("c") || "").trim();
   var track = (params.get("track") || "").trim().toLowerCase();
   var VALID = { dd:1, reset:1, travel:1, fatloss:1, muscle:1 };
+  var contactCard = document.getElementById("card-contact");
+  if (contactCard) { contactCard.style.display = "none"; contactCard.setAttribute("href", "#"); }
   if (!c) return;
   function safeUrl(u) { return typeof u === "string" && /^(https:\/\/|\/)/.test(u) ? u : null; }
   function setText(id, t) { var el = document.getElementById(id); if (el) el.textContent = t; }
@@ -225,8 +227,8 @@ Add to your Home Screen to use like an app
       else if (VALID[track]) link = "../program.html?track=" + encodeURIComponent(track) + "&c=" + encodeURIComponent(c);
       if (link) { upgrade("training", link, "Open your training"); upgrade("checkin", link, "Open your weekly check-in"); }
       var calc = safeUrl(co.calculator_url), lead = safeUrl(co.lead_url), book = safeUrl(co.booking_url);
-      if (calc) { var ce = document.getElementById("card-calc"); ce.href = calc; ce.hidden = false; }
-      if (lead) { var le = document.getElementById("card-lead"); le.href = lead; le.hidden = false; }
+      if (calc) { var ce = document.getElementById("card-calc"); ce.href = calc; ce.style.display = ""; }
+      if (lead) { var le = document.getElementById("card-lead"); le.href = lead; le.style.display = ""; }
       if (book) addBookingCard(book);
       var digits = String(co.text_number || "").replace(/\D/g, "");
       if (digits.length === 10) digits = "1" + digits;
@@ -237,9 +239,10 @@ Add to your Home Screen to use like an app
         document.getElementById("ic-contact").innerHTML = "&#128241;";
         setText("t-contact", "Text Coach");
         setText("d-contact", "Message me directly — " + digits.slice(1, 4) + "-" + digits.slice(4, 7) + "-" + digits.slice(7));
+        card.style.display = "";
       } else {
         var p = String(co.contact_phone || "").replace(/[^0-9+]/g, "");
-        if (p.length >= 10) { card.setAttribute("href", "tel:" + p); setText("d-contact", "Call to book your session"); }
+        if (p.length >= 10) { card.setAttribute("href", "tel:" + p); setText("d-contact", "Call to book your session"); card.style.display = ""; }
       }
     })
     .catch(function () {});

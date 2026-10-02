@@ -113,14 +113,14 @@ font-weight:700; font-size:14px; cursor:pointer; }
 <div id="cliList"><div class="cli-note">Enter your coach token and tap Load to see your clients.</div></div>
 
 <div class="section-label">Add a client</div>
-<form id="addForm" autocomplete="off" hidden style="display:grid;gap:8px">
+<form id="addForm" autocomplete="off" style="display:none;gap:8px">
 <input id="acName" placeholder="Client name" maxlength="100" required style="padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:#fff">
 <input id="acEmail" type="email" placeholder="Email (needed for check-in emails)" style="padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:#fff">
 <div style="display:flex;gap:8px">
 <select id="acGoal" style="flex:1;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:#fff"><option value="fat_loss">Fat loss</option><option value="muscle_gain">Muscle gain</option><option value="maintenance">Maintenance</option></select>
 <input id="acWpw" type="number" min="1" max="14" value="3" title="Workouts per week" style="width:90px;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:#fff">
 </div>
-<select id="acTrack" hidden style="padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:#fff"><option value="">Track (optional)</option><option value="dd">Diesel &amp; Discipline</option><option value="reset">The Reset</option><option value="travel">Travel</option></select>
+<select id="acTrack" style="display:none;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:#fff"><option value="">Track (optional)</option><option value="dd">Diesel &amp; Discipline</option><option value="reset">The Reset</option><option value="travel">Travel</option></select>
 <button type="submit" style="padding:12px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:700">Add client</button>
 <div id="acOut" class="cli-note"></div>
 </form>
@@ -213,8 +213,8 @@ async function loadMe(token) {
     if (!COACH) return;
     document.getElementById("coachName").textContent = COACH.display_name || "Coach Hub";
     document.getElementById("coachLogo").textContent = String(COACH.logo_text || "").slice(0, 2);
-    document.getElementById("addForm").hidden = false;
-    document.getElementById("acTrack").hidden = COACH.skin !== "tracks";
+    document.getElementById("addForm").style.display = "grid";
+    document.getElementById("acTrack").style.display = COACH.skin === "tracks" ? "" : "none";
   } catch (_) {}
 }
 document.getElementById("addForm").addEventListener("submit", async (e) => {
