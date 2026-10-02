@@ -361,7 +361,9 @@ function render() {
       <select data-k="brand">
         ${[["reset","The Reset (green)"],["dd","Diesel & Discipline (amber)"],["travel","Travel Plan (orange)"]]
           .map(([v, t]) => `<option value="${v}"${plan.brand === v ? " selected" : ""}>${t}</option>`).join("")}
-      </select>` : ""}$1</div>$2<div class="weeks">${plan.weeks.map((_, i) => `<button data-act="week" data-w="${i}" class="${i === week ? "on" : ""}">Week ${i + 1}</button>`).join("")}
+      </select>` : ""}
+    </div>
+    <div class="weeks">${plan.weeks.map((_, i) => `<button data-act="week" data-w="${i}" class="${i === week ? "on" : ""}">Week ${i + 1}</button>`).join("")}
       <button data-act="weekAdd">+ Week</button></div>
     <div class="row" style="margin-bottom:12px">
       <button class="btn small" data-act="weekDup">Copy week ${week + 1} to a new week</button>
